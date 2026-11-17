@@ -1,0 +1,11 @@
+{
+  "dataset": "FlyWire FAFB v783",
+  "neurons": 139255,
+  "connections": 2700513,
+  "synapses": 34153566,
+  "minSynapses": 5,
+  "inhibitory": 44044,
+  "inhibitoryEdges": 1063578,
+  "photoreceptors": 11118,
+  "note": "photoreceptor (R1-6, R7, R8) synapses forced inhibitory: they are histaminergic and histamine is not one of the six transmitters the FlyWire classifier predicts"
+}

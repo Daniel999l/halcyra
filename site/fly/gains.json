@@ -1,0 +1,28 @@
+{
+  "_": "The only fitted numbers in the project. The wiring is never touched.",
+  "brain": {
+    "Gc": 8.0,
+    "tau": 30,
+    "theta": 0.12,
+    "beta": 0.55,
+    "Ga": 0.5,
+    "tauA": 400,
+    "noise": 0.05,
+    "senseIn": 0.25
+  },
+  "body": {
+    "rLamina": 1.0,
+    "rTonic": 0.05,
+    "kSpatial": 5.0,
+    "kTemporal": 9.0,
+    "kFwd": 0.11,
+    "kTurn": 0.30,
+    "hzStop": 0.35,
+    "hzLay": 0.2,
+    "layMs": 120,
+    "refractoryMs": 1500,
+    "speed": 240,
+    "turn": 3.4,
+    "commit": "lay"
+  }
+}

@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>protected-looking video</title>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}video{display:block;width:100vw;height:100vh;object-fit:contain}</style>
+</head>
+<body>
+<!-- the video comes from another origin with no CORS: drawing it into a canvas taints the canvas -->
+<video autoplay muted loop playsinline></video>
+<script>
+  const v = document.querySelector('video');
+  v.src = new URLSearchParams(location.search).get('src') || '';
+  v.play().catch(() => {});
+</script>
+</body>
+</html>

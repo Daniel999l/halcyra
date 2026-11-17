@@ -1,0 +1,42 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>outside dos page (test)</title>
+<style>
+body{margin:0;background:#111;color:#ddd;font:14px sans-serif}
+#play{position:absolute;left:40px;top:40px;padding:12px 24px;font-size:18px}
+#game{display:none;width:960px;height:600px;margin:60px auto 0;image-rendering:pixelated}
+</style></head>
+<body>
+<!-- a stand in for an outside site that runs a DOS game in a js-dos canvas:
+     nothing starts until "Play" is clicked; keys are read from real keydown /
+     keyup events on window (as the js-dos player does), by keyCode -->
+<button id="play">Play</button>
+<canvas id="game" width="320" height="200"></canvas>
+<script src="/emu/emulators.js"></script>
+<script>
+const MAP = { 37: 263, 38: 265, 39: 262, 40: 264, 13: 257, 32: 32, 27: 256 };
+window.__log = [];
+window.__frames = 0;
+window.addEventListener('keydown', (e) => { __log.push({ t: performance.now(), code: e.code, down: true, trusted: e.isTrusted }); if (window.__ci && MAP[e.keyCode]) { __ci.sendKeyEvent(MAP[e.keyCode], true); e.preventDefault(); } });
+window.addEventListener('keyup', (e) => { __log.push({ t: performance.now(), code: e.code, down: false, trusted: e.isTrusted }); if (window.__ci && MAP[e.keyCode]) { __ci.sendKeyEvent(MAP[e.keyCode], false); e.preventDefault(); } });
+document.getElementById('play').addEventListener('click', async () => {
+  document.getElementById('play').remove();
+  const cv = document.getElementById('game'); cv.style.display = 'block';
+  const g = cv.getContext('2d');
+  emulators.pathPrefix = '/emu/';
+  const b = new Uint8Array(await (await fetch('/bundle.jsdos')).arrayBuffer());
+  const ci = await emulators.dosboxWorker(b);
+  window.__ci = ci;
+  let img = null;
+  const size = (w, h) => { if (w > 0 && h > 0) { cv.width = w; cv.height = h; img = g.createImageData(w, h); } };
+  ci.events().onFrameSize(size); size(ci.width(), ci.height());
+  ci.events().onFrame((rgb, rgba) => {
+    if (!img) return;
+    const d = img.data;
+    if (rgba) d.set(rgba.subarray(0, d.length));
+    else if (rgb) for (let i = 0, j = 0; j < d.length; i += 3, j += 4) { d[j] = rgb[i]; d[j + 1] = rgb[i + 1]; d[j + 2] = rgb[i + 2]; d[j + 3] = 255; }
+    g.putImageData(img, 0, 0); window.__frames += 1;
+  });
+  ci.events().onMessage((t, ...a) => { window.__msgs = (window.__msgs || []).concat([t + ' ' + a.join(' ')]); });
+});
+</script>
+</body></html>
