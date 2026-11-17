@@ -110,6 +110,14 @@ export function laminaSides() {
   return eyeSides;
 }
 
+/** the mark, inside the page itself so the header never waits on another request */
+const MARK_SVG = (() => {
+  try {
+    const raw = fs.readFileSync(path.join(HOME, 'brand', 'mark.svg'), 'utf8');
+    return raw.replace(/<\?xml[^>]*>/, '').replace('<svg ', '<svg class="mark-logo" width="18" height="18" aria-hidden="true" focusable="false" ').replace(/\s*role="img"/, '').replace(/\s*aria-label="[^"]*"/, '').replace(/id="m"/g, 'id="hm"').replace(/url\(#m\)/g, 'url(#hm)').replace(/\n\s*/g, '');
+  } catch { return ''; }
+})();
+
 export async function renderHome({ config = {}, state = null, ladder = null, meta = null, frame = false } = {}) {
   const m = meta || JSON.parse(fs.readFileSync(path.join(FLY, 'meta.json'), 'utf8'));
   const cells = await homeCells();
@@ -185,7 +193,7 @@ export async function renderHome({ config = {}, state = null, ladder = null, met
 <canvas id="marks" aria-hidden="true"></canvas>
 
 <header class="mast">
-  <span class="mark"><img class="mark-logo" src="/home/brand/mark.svg" width="18" height="18" alt="">${esc(name)}</span>${xUrl ? `
+  <span class="mark">${MARK_SVG}${esc(name)}</span>${xUrl ? `
   <span class="links"><a class="xlink" href="${esc(xUrl)}" target="_blank" rel="noopener">X</a>${ghUrl ? `<a class="xlink ghlink" href="${esc(ghUrl)}" target="_blank" rel="noopener">GitHub</a>` : ''}</span>` : ghUrl ? `
   <span class="links"><a class="xlink ghlink" href="${esc(ghUrl)}" target="_blank" rel="noopener">GitHub</a></span>` : ''}
 </header>
