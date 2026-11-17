@@ -15,6 +15,7 @@ import { say } from './log.js';
 import { Ledger } from './ledger.js';
 import { Hub, buildProof } from './state.js';
 import { createServer } from './server.js';
+import { restoreGames } from './games.js';
 import { Ladder } from './ladder.js';
 import { Keyer } from './keyer.js';
 import { STAGE_KEYS } from './stagekeys.js';
@@ -196,6 +197,18 @@ export async function startApp({ cfg, db = null, dbNote = '', modules = {}, cons
     });
     app.consoleTab.start();
   }
+  // a bundle that just arrived (src/games.js): start on it, or load it again if she is on that game
+  hub.onGame = async (id) => {
+    if (native || cfg.console.url) return;
+    const best = ladder.bestPlayable();
+    if (!best) return;
+    if (!app.consoleTab) {
+      ladder.setTarget(best); cfg.game = best.game;
+      say(`console: ${best.game} (ladder stage ${best.index + 1})`, { kind: 'games' });
+      await openConsole(ladder.urlFor(best));
+    } else if (ladder.target?.id === id && app.consoleTab.goTo) app.consoleTab.goTo(`${ladder.urlFor(best)}&v=${Date.now()}`);
+  };
+  if (!native && !cfg.console.url) await restoreGames({ db, gamesDir: cfg.gamesDir, stages: ladder.stages, hub });
   if (cfg.console.url || native) await openConsole(cfg.console.url);
   else {
     const best = ladder.bestPlayable();

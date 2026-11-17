@@ -80,7 +80,7 @@ It boots with nothing set. Each missing value turns one part off and
 
 ## Env
 
-Required for the real thing (these four are all `.env.example` holds):
+Required for the real thing (these are all `.env.example` holds):
 
 | var | what |
 |---|---|
@@ -88,6 +88,7 @@ Required for the real thing (these four are all `.env.example` holds):
 | `TOKEN_CA` | the coin's mint |
 | `CONSOLE_URL` | a fixed console page (the ladder then only records unlocks). Leave it unset to let the ladder drive the tab (docs/STAGES.md, Launch checklist) |
 | `STREAM_URL` | RTMP ingest URL with the stream key on the end (`rtmp://host/app/<key>`) |
+| `ADMIN_KEY` | a secret of your own. With it set, `PUT /admin/games/<stage id>` takes a game bundle (header `x-admin-key`), keeps a copy in Mongo and starts her on it. Unset: that address does not exist |
 
 Optional overrides (defaults in `src/config.js`):
 

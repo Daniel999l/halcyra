@@ -19,12 +19,17 @@
  */
 
 // GTA 1 (DOS) default keys: arrows drive, Enter gets in/out, Space is the handbrake
-const GTA1 = { steerLeft: 'ArrowLeft', steerRight: 'ArrowRight', gas: 'ArrowUp', brake: 'ArrowDown', enterExit: 'Enter', handbrake: 'Space', periodMs: 100, dead: 0.05 };
+// `menu`: the game's own menus run at a higher resolution than the city (640 wide
+// against 320). While the picture is that wide for `afterMs`, the page taps
+// `key` every `everyMs`, which walks title -> player -> city -> into the game,
+// and does the same again after a game over. In the city it never fires.
+const GTA1 = { steerLeft: 'ArrowLeft', steerRight: 'ArrowRight', gas: 'ArrowUp', brake: 'ArrowDown', enterExit: 'Enter', handbrake: 'Space', periodMs: 100, dead: 0.05,
+  menu: { minW: 600, key: 'Enter', afterMs: 5000, everyMs: 3500, holdMs: 120 } };
 
 export const STAGE_KEYS = Object.freeze({
   gta1: GTA1,
   // GTA 2 defaults are the same keys (arrows, Enter, Space)
-  gta2: { ...GTA1 },
+  gta2: { ...GTA1, menu: null },
   default: GTA1,
 });
 

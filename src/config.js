@@ -28,6 +28,7 @@ export function makeConfig() {
     root: ROOT,
     flyDir: path.join(ROOT, 'site', 'fly'),
     dataDir: path.resolve(ROOT, env('DATA_DIR', 'data')),
+    adminKey: env('ADMIN_KEY'), // PUT /admin/games/<id> needs it; unset = that address does not exist
     gamesDir: path.resolve(ROOT, env('GAMES_DIR', 'games')), // <id>/bundle.jsdos per stage (not in git; served to loopback only)
     port,
     publicUrl: env('PUBLIC_URL', 'https://halcyra.bio').replace(/\/$/, ''),

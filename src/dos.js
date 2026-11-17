@@ -129,6 +129,19 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden}
       for (const code of mapped) set(code, want.includes(code) || !!dom[code]);
       for (const code of Object.keys(dom)) if (!mapped.includes(code)) set(code, !!dom[code]);
     }, 10);
+    // the game's own menus (P.keys.menu): tap a key while the picture is menu sized
+    const M = P.keys.menu;
+    if (M && P.codes[M.key]) {
+      let wideSince = 0, lastTap = 0; st.menuTaps = 0;
+      setInterval(() => {
+        const now = performance.now();
+        if (st.state !== 'running' || st.w < M.minW) { wideSince = 0; return; }
+        if (!wideSince) wideSince = now;
+        if (now - wideSince < M.afterMs || now - lastTap < M.everyMs) return;
+        lastTap = now; st.menuTaps += 1;
+        dom[M.key] = true; setTimeout(() => { dom[M.key] = false; }, M.holdMs || 120);
+      }, 250);
+    }
   } catch (e) {
     st.state = 'error'; st.error = String(e && e.message || e);
   }

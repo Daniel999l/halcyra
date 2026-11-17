@@ -14,6 +14,7 @@
  *   GET /api/ladder          the game ladder: stages, unlocked, playing, market cap
  *   GET /api/live            SSE: "tick", "trade" and "unlock" events
  *   GET /console/dos?b=<id>  the in-tab DOS console (loopback requests only)
+ *   PUT /admin/games/<id>    a game bundle coming in (needs ADMIN_KEY, src/games.js)
  *
  * Everything is Cache-Control: no-store and CORS-open for GET.
  */
@@ -22,6 +23,7 @@ import { links } from './config.js';
 import { serveConsole } from './dos.js';
 import { mountHome } from './pages.js';
 import { docsRoute } from './docs-pages.js';
+import { gamesRoute } from './games.js';
 
 const H = { 'cache-control': 'no-store', 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET, OPTIONS' };
 
@@ -33,11 +35,14 @@ function send(res, code, body, type = 'application/json; charset=utf-8') {
 export function createServer({ cfg, hub, ledger, db = null }) {
   const home = mountHome(null, { cfg, hub });
   const docs = docsRoute({ cfg, hub, ledger });
+  const games = gamesRoute({ cfg, hub, db });
   return http.createServer(async (req, res) => {
     try {
       if (req.method === 'OPTIONS') { res.writeHead(204, H); return res.end(); }
-      if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { error: 'GET only' });
       const url = new URL(req.url, 'http://x');
+      // a game bundle coming in (src/games.js): the only address that takes a body
+      if (url.pathname.startsWith('/admin/games/')) { if (await games(req, res, url)) return undefined; }
+      if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, { error: 'GET only' });
       const p = url.pathname.replace(/\/+$/, '') || '/';
       const q = (k) => url.searchParams.get(k);
 
@@ -55,6 +60,7 @@ export function createServer({ cfg, hub, ledger, db = null }) {
           console: hub.console,
           stream: hub.stream,
           watcher: hub.watcher,
+          games: hub.games || {},
           loop: hub.loop,
           memoryMb: Math.round(process.memoryUsage().rss / 1048576),
         });

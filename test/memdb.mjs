@@ -4,6 +4,9 @@
  */
 import { totalsFrom } from '../src/db.js';
 
+import fs from 'node:fs';
+import path from 'node:path';
+
 export function memDb() {
   const ticks = []; // buckets
   const cps = [];
@@ -11,9 +14,16 @@ export function memDb() {
   const sessions = [];
   const state = new Map();
   const ladder = [];
+  const gameFiles = new Map();
   const copy = (x) => (x == null ? x : structuredClone(x));
   return {
     kind: 'memory-test',
+    async saveGame(id, file, meta = {}) { gameFiles.set(id, { buf: fs.readFileSync(file), meta: { ...meta } }); return { ok: true }; },
+    async loadGame(id, dest) {
+      const g = gameFiles.get(id); if (!g) return null;
+      fs.mkdirSync(path.dirname(dest), { recursive: true }); fs.writeFileSync(dest, g.buf);
+      return { bytes: g.buf.length, meta: { ...g.meta } };
+    },
     _raw: { ticks, cps, trades, sessions, ladder },
     async insertBucket(b) {
       if (ticks.some((x) => x.from === b.from)) return { ok: false, dup: true };

@@ -1,6 +1,6 @@
 /**
  * Mongo, on a cluster shared with other projects. This file only ever touches
- * four collections, all prefixed halcyra_:
+ * its own collections, all prefixed halcyra_:
  *
  *   halcyra_ticks     the proof ledger, in compressed buckets of ~1 minute
  *                    (insert-only, unique on `from`; expire after TICK_KEEP_H)
@@ -9,10 +9,15 @@
  *   halcyra_trades    every trade she tasted (insert-only, unique on sig)
  *   halcyra_session   console login storageState versions (insert-only)
  *   halcyra_ladder    game ladder unlocks (insert-only, unique on mint + stage)
+ *   halcyra_games     game bundles, one stored file per stage (GridFS:
+ *                    halcyra_games.files and halcyra_games.chunks)
  *
  * Nothing here drops, renames or reads any other collection.
  * test/memdb.mjs implements the same methods in memory for tests.
  */
+import fs from 'node:fs';
+import path from 'node:path';
+import { pipeline } from 'node:stream/promises';
 import { say } from './log.js';
 
 export const COLLECTIONS = ['halcyra_ticks', 'halcyra_meta', 'halcyra_trades', 'halcyra_session', 'halcyra_ladder'];
@@ -21,7 +26,7 @@ const isDup = (e) => e && (e.code === 11000 || /E11000/.test(String(e.message)))
 const strip = (d) => { if (!d) return d; const { _id, ...r } = d; return r; };
 
 export async function connectMongo({ uri, db: dbName = 'halcyra', keepHours = 48 }) {
-  const { MongoClient, Binary } = await import('mongodb');
+  const { MongoClient, Binary, GridFSBucket } = await import('mongodb');
   const client = new MongoClient(uri, { serverSelectionTimeoutMS: 15000, maxPoolSize: 5 });
   await client.connect();
   const db = client.db(dbName);
@@ -30,6 +35,7 @@ export async function connectMongo({ uri, db: dbName = 'halcyra', keepHours = 48
   const trades = db.collection('halcyra_trades');
   const session = db.collection('halcyra_session');
   const ladder = db.collection('halcyra_ladder');
+  const games = new GridFSBucket(db, { bucketName: 'halcyra_games', chunkSizeBytes: 1024 * 1024 });
 
   await ticks.createIndex({ from: 1 }, { unique: true, name: 'from_unique' });
   await ticks.createIndex({ to: 1 }, { name: 'to' });
@@ -90,6 +96,23 @@ export async function connectMongo({ uri, db: dbName = 'halcyra', keepHours = 48
     async latestSession(kind) { return strip(await session.find({ kind }).sort({ v: -1 }).limit(1).next()); },
     async insertLadderUnlock(doc) { return insert(ladder, { ...doc, at: new Date(doc.at) }); },
     async ladderUnlocks(mint) { return (await ladder.find({ mint }).sort({ index: 1 }).toArray()).map((d) => ({ ...strip(d), at: +d.at })); },
+    /** store one stage's bundle file (the newest copy replaces older ones) */
+    async saveGame(id, file, meta = {}) {
+      const old = await games.find({ filename: id }).toArray();
+      await pipeline(fs.createReadStream(file), games.openUploadStream(id, { metadata: { ...meta, at: Date.now() } }));
+      for (const f of old) await games.delete(f._id).catch(() => {});
+      return { ok: true };
+    },
+    /** write the stored bundle of a stage to dest; -> { bytes, meta } or null when there is none */
+    async loadGame(id, dest) {
+      const f = await games.find({ filename: id }).sort({ uploadDate: -1 }).limit(1).next();
+      if (!f) return null;
+      await fs.promises.mkdir(path.dirname(dest), { recursive: true });
+      const tmp = `${dest}.part`;
+      await pipeline(games.openDownloadStream(f._id), fs.createWriteStream(tmp));
+      await fs.promises.rename(tmp, dest);
+      return { bytes: f.length, meta: f.metadata || {} };
+    },
     async ping() { await db.command({ ping: 1 }); return true; },
     async close() { try { await client.close(); } catch { /* gone */ } },
   };
